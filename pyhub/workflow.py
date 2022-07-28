@@ -1,3 +1,4 @@
+from __future__ import annotations
 import inspect
 import yaml
 from .types import Concurrency, On, ActionCheckout, Action
