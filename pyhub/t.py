@@ -22,6 +22,7 @@ class On(TypedDict, total=False):
     discussion_comment: Optional[TypesList]
     fork: Optional[bool]
     gollum: Optional[bool]
+    push: Optional[dict]
     # TODO: add the rest
 
 

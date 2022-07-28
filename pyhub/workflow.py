@@ -8,7 +8,10 @@ from typing import List, Optional, Dict
 def generate_needs(needs: list[str]) -> str:
     returnable = ""
     for need in needs:
-        returnable = returnable + "\"${{ needs." + need + ".outputs.run }}\", "
+        split = need.split(".")
+        job = split[0]
+        output = split[1]
+        returnable = returnable + "\"${{ needs." + job + ".outputs." + output + " }}\", "
 
     if returnable == "":
         return ""
@@ -31,7 +34,7 @@ def generate_action_checkout_dict(action_checkout: ActionCheckout) -> Action:
     return action_checkout_step
 
 
-def generate_steps(requirements_file, action_checkout, actions, func, run_string):
+def generate_steps(requirements_file, action_checkout, actions, func, run_string, working_directory):
     install_requirements_step = None
     if requirements_file is not None:
         install_requirements_step = {
@@ -59,13 +62,28 @@ def generate_steps(requirements_file, action_checkout, actions, func, run_string
     if install_requirements_step is not None:
         steps.append(install_requirements_step)
 
-    steps.append({
+    work = {
         'name': func.__name__,
         'id': 'run',
         'run': run_string
-    })
+    }
+
+    if working_directory is not None:
+        work["working-directory"] = working_directory
+
+    steps.append(work)
 
     return steps
+
+
+def set_output(output_name: str, value: str):
+    """
+    Sets output to github actions
+    :param output_name: Name of the output
+    :param value:  Value of the output
+    :return: None
+    """
+    print(value)
 
 
 class Workflow:
@@ -88,7 +106,9 @@ class Workflow:
             control: Optional[str] = None,
             env: Optional[Dict[str, str]] = None,
             action_checkout: Optional[bool | ActionCheckout] = False,
-            actions: Optional[list[Action]] = None):
+            actions: Optional[list[Action]] = None,
+            outputs: Optional[list[str]] = None,
+            working_directory: Optional[str] = None):
 
         if needs is None:
             needs = []
@@ -96,27 +116,30 @@ class Workflow:
         def wrapped(func):
             # get the function value and remove the first line
             func_val = ''.join(line for line in inspect.getsource(func).splitlines(True)[1:])
-            run_string = f'''python <<EOF | tee /tmp/capture.out
+            run_string = f'''python <<EOF
+def set_output(output_name: str, value: str):
+    print(f"::set-output name={{output_name}}::{{value}}")
+
 {func_val}
 
-import sys, os
-sys.stdout = open(os.devnull, 'w')
-pyresult = {func.__name__}({generate_needs(needs)})
-sys.stdout = sys.__stdout__
-print(pyresult)
+{func.__name__}({generate_needs(needs)})
 EOF
-result=$(cat /tmp/capture.out)
-echo "::set-output name=result::${{result}}"
 '''
+
+            top_needs = []
+            for need in needs:
+                top_needs.append(need.split(".")[0])
 
             self.jobs[func.__name__] = {
                 'runs-on': runs_on,
-                'needs': needs,
-                'outputs': {
-                    'result': '${{ steps.run.outputs.result }}'
-                },
-                'steps': generate_steps(self.requirements_file, action_checkout, actions, func, run_string)
+                'needs': top_needs,
+                'outputs': {},
+                'steps': generate_steps(self.requirements_file, action_checkout, actions, func, run_string, working_directory)
             }
+
+            if outputs is not None:
+                for name in outputs:
+                    self.jobs[func.__name__]["outputs"][name] = f"${{{{ steps.run.outputs.{name} }}}}"
 
             if control is not None:
                 self.jobs[func.__name__]["if"] = control
