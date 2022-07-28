@@ -125,7 +125,7 @@ echo "::set-output name=result::${{result}}"
 
         return wrapped
 
-    def make(self):
+    def make(self, outfile: Optional[str] = None):
         workflow = {
             'name': self.name,
             'on': self.on,
@@ -145,6 +145,9 @@ echo "::set-output name=result::${{result}}"
         if self.env is not None:
             workflow['env'] = self.env
 
-        f = open("./workflow.yaml", "w")
+        if outfile is None:
+            outfile = "./workflow.yaml"
+
+        f = open(outfile, "w")
         f.write(yaml.dump(workflow))
         f.close()
