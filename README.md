@@ -13,7 +13,12 @@ This is a WIP this readme would need lots of cleaning.
 
 Now you can use `pyhub`!
 
-### Local Development
+# Dev
+
+### Install
 1. clone this repo
-2. cd orion
-3. pip install --editable .
+2. cd pyhub
+3. python -m pip install --editable .
+
+### Tests
+`./run_unit_tests.sh`

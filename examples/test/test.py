@@ -1,5 +1,5 @@
 from pyhub.workflow import Workflow
-from pyhub.types import Concurrency, On, ActionCheckout, Action
+from pyhub.t import Concurrency, On, ActionCheckout, Action
 
 workflow = Workflow("My Amazing Test Workflow",
                     On(push={}),

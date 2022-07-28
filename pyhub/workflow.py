@@ -1,7 +1,7 @@
 from __future__ import annotations
 import inspect
 import yaml
-from .types import Concurrency, On, ActionCheckout, Action
+from .t import Concurrency, On, ActionCheckout, Action
 from typing import List, Optional, Dict
 
 
@@ -126,7 +126,7 @@ echo "::set-output name=result::${{result}}"
 
         return wrapped
 
-    def make(self, outfile: Optional[str] = None):
+    def make(self, outfile: Optional[str] = None, return_as: str = "file"):
         workflow = {
             'name': self.name,
             'on': self.on,
@@ -149,6 +149,10 @@ echo "::set-output name=result::${{result}}"
         if outfile is None:
             outfile = "./workflow.yaml"
 
-        f = open(outfile, "w")
-        f.write(yaml.dump(workflow))
-        f.close()
+        if return_as == "file":
+            f = open(outfile, "w")
+            f.write(yaml.dump(workflow))
+            f.close()
+
+        if return_as == "dict":
+            return workflow
