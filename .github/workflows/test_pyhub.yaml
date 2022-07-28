@@ -1,0 +1,44 @@
+jobs:
+  test_pyhub:
+    needs: []
+    outputs: {}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Raw Bash
+      run: |2
+
+        sudo apt update && sudo apt upgrade -y
+        sudo apt install software-properties-common -y
+        sudo add-apt-repository ppa:deadsnakes/ppa
+        sudo apt install python3.10
+    - id: run
+      name: test_pyhub
+      run: |
+        python3.10 <<EOF
+        def set_output(output_name: str, value: str):
+            print(f"::set-output name={output_name}::{value}")
+
+        def test_pyhub():
+            import glob
+            import unittest
+            import pip
+
+            pip.main(["install", "git+ssh://git@github.com/Apollorion/pyhub.git@${{ github.ref_name }}"])
+
+            test_files = glob.glob('test_*.py')
+            module_strings = [test_file[0:len(test_file) - 3] for test_file in test_files]
+            suites = [unittest.defaultTestLoader.loadTestsFromName(test_file) for test_file in module_strings]
+            test_suite = unittest.TestSuite(suites)
+            test_runner = unittest.TextTestRunner().run(test_suite)
+            print(test_runner)
+
+
+        test_pyhub()
+        EOF
+      working-directory: pyhub/test
+name: Test Pyhub
+'on':
+  push:
+    branches:
+    - run-tests
